@@ -1,0 +1,21 @@
+name: climpred-skeleton-dev
+channels:
+    - conda-forge
+dependencies:
+    - python=3.6
+    - jupyterlab
+    - netcdf4
+    - numpy
+    - pandas=0.25.3
+    - xarray
+    - black
+    - flake8
+    - isort
+    - bottleneck
+    - dask
+    - xskillscore
+    - matplotlib
+    - nc-time-axis
+    - cartopy
+    - climpred  # for example data
+    - pre-commit
