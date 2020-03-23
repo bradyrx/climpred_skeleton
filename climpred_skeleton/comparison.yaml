@@ -1,0 +1,11 @@
+EnsembleToObservation:
+  keywords: ['e2o', 'test']
+  long_name: 'verify ensemble mean against observations.'
+
+MemberToObservation:
+  keywords: ['m2o']
+  long_name: 'verify ensemble members against observations.'
+
+MemberToControl:
+  keywords: ['m2c']
+  long_name: 'compare all forecast members to a control member.'
