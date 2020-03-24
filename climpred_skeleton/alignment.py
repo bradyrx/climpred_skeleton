@@ -3,10 +3,10 @@ from typing import Union
 import xarray as xr
 
 from .comparison import Comparison
-from .core import Verification
+from .time import TimeManager
 
 
-class LeadAlignment(Verification):
+class LeadAlignment(TimeManager):
     """Base class for Alignment step of pipeline.
 
     This is the second step for Hindcast ensembles, and is not
@@ -39,11 +39,10 @@ class LeadAlignment(Verification):
         self._comparison_method = comparison_obj._comparison_method
         self._initialized, self._observation = comparison_obj.broadcast()
 
-    def align(self):
-        pass
-
     def _construct_init_lead_matrix(self):
-        n, freq = self._get_multiple_lead_cftime_shift_args()
+        """Constructs the init-lead matrix to figure out which inits and verif dates
+        to use at a given lead for a given alignment strategy."""
+        n, freq = self._get_all_lead_cftime_shift_args()
         init_lead_matrix = xr.concat(
             [
                 xr.DataArray(
@@ -57,29 +56,8 @@ class LeadAlignment(Verification):
         )
         return init_lead_matrix
 
-    def _get_lead_cftime_shift_args(self, lead):
-        lead = int(lead)
-
-        d = {
-            # Currently assumes yearly aligns with year start.
-            'years': (lead, 'YS'),
-            'seasons': (lead * 3, 'MS'),
-            # Currently assumes monthly aligns with month start.
-            'months': (lead, 'MS'),
-            'weeks': (lead * 7, 'D'),
-            'pentads': (lead * 5, 'D'),
-            'days': (lead, 'D'),
-        }
-
-        n, freq = d[self._units]
-        return n, freq
-
-    def _get_multiple_lead_cftime_shift_args(self):
-        n_freq_tuples = [self._get_lead_cftime_shift_args(l) for l in self._leads]
-        n, freq = list(zip(*n_freq_tuples))
-        return n, freq[0]
-
-    def _shift_hindcast_inits(self, n, freq):
+    def _shift_hindcast_inits(self, n: int, freq: str):
+        """Shifts hindcast inits `n` timesteps forward at `freq`."""
         time_index = self._initialized['init'].to_index()
         return time_index.shift(n, freq)
 

@@ -4,10 +4,10 @@ import pkg_resources
 import xarray as xr
 import yaml
 
-from .core import Verification
+from .time import TimeManager
 
 
-class Comparison(Verification):
+class Comparison(TimeManager):
     """First step in pipeline. Broadcast your initialized and observations
     in a certain manner.
 
