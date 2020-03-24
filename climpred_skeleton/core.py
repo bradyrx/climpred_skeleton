@@ -1,10 +1,9 @@
 import warnings
 from typing import Union
 
+import cftime
 import pandas as pd
 import xarray as xr
-
-import cftime
 
 
 class Verification:
@@ -21,10 +20,11 @@ class Verification:
         observation: Union[xr.Dataset, xr.DataArray],
     ):
         # E.g., check that inputs are xarray objects, convert to dataset.
-        self._initialized = (
-            initialized.copy()
-        )  # Make sure that we don't overwrite the original array.
+
+        # Make sure that we don't overwrite the original arrays.
+        self._initialized = initialized.copy()
         self._observation = observation.copy()
+
         # Convert `init` and `time` indices to CFTimeIndex.
         self._convert_to_cftime_index()
         if 'member' in self._initialized.dims:
