@@ -32,8 +32,8 @@ class Verification:
             self._members = self._initialized['member'].data
         else:
             self._nmember, self._members = None, None
-        self._all_verifs = self._observation['time'].data
-        self._all_inits = self._initialized['init'].data
+        self._units = self._initialized['lead'].attrs['units']
+        self._leads = self._initialized['lead'].data
 
     def _convert_to_cftime_index(self, calendar: str = 'DatetimeProlepticGregorian'):
         """Converts time indices for the prediction and observations to a
