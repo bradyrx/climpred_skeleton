@@ -2,7 +2,6 @@ from typing import Union
 
 import xarray as xr
 
-from .comparison import Comparison
 from .time import TimeManager
 
 
@@ -11,9 +10,6 @@ class LeadAlignment(TimeManager):
 
     This is the second step for Hindcast ensembles, and is not
     required by Perfect Model.
-
-    It doesn't inherit from ``Comparison`` because we don't want to retain
-    the `.broadcast()` and `.factory()` functions.
 
     At initialization, it retrieves the appropriate comparison subclass and overwrites
     the `initialized` and `observation` attribute with their dbroadcasted versions.
@@ -30,14 +26,6 @@ class LeadAlignment(TimeManager):
         self._alignment = alignment
         self._all_verifs = self._observation['time']
         self._all_inits = self._initialized['init']
-
-        # Run comparison on the object
-        # (this might go to Scoring, since PM doesn't go through here)
-        comparison_obj = Comparison(
-            self._initialized, self._observation
-        ).get_comparison(comparison)
-        self._comparison_method = comparison_obj._comparison_method
-        self._initialized, self._observation = comparison_obj.broadcast()
 
     def _construct_init_lead_matrix(self):
         """Constructs the init-lead matrix to figure out which inits and verif dates
