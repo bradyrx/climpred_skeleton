@@ -27,6 +27,9 @@ class Comparison(TimeManager):
     ):
         super().__init__(initialized, observation)
 
+    def broadcast(self):
+        pass
+
     def get_comparison(self, method) -> 'Comparison':
         try:
             return comparison_dict[method](self._initialized, self._observation)
