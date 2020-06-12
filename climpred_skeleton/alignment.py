@@ -28,8 +28,8 @@ class LeadAlignment(TimeManager):
     ):
         super().__init__(initialized, observation)
         self._alignment = alignment
-        self._all_verifs = self._observation['time'].data
-        self._all_inits = self._initialized['init'].data
+        self._all_verifs = self._observation['time']
+        self._all_inits = self._initialized['init']
 
         # Run comparison on the object
         # (this might go to Scoring, since PM doesn't go through here)
@@ -46,7 +46,7 @@ class LeadAlignment(TimeManager):
         init_lead_matrix = xr.concat(
             [
                 xr.DataArray(
-                    self._shift_hindcast_inits(n, freq),
+                    self._shift_hindcast_inits(int(n), freq),
                     dims=['init'],
                     coords=[self._all_inits],
                 )
@@ -57,8 +57,9 @@ class LeadAlignment(TimeManager):
         return init_lead_matrix
 
     def _shift_hindcast_inits(self, n: int, freq: str):
-        """Shifts hindcast inits `n` timesteps forward at `freq`."""
-        time_index = self._initialized['init'].to_index()
+        """Helper function to shift the initialized inits by a specific n and freq. Used
+        in constructing the init/lead matrix."""
+        time_index = self._all_inits.to_index()
         return time_index.shift(n, freq)
 
 
@@ -67,6 +68,25 @@ class SameInitializations(LeadAlignment):
 
     def __init__(self, initialized, observation, comparison, alignment):
         super().__init__(initialized, observation, comparison, alignment)
+        inits, verif_dates = self._return_inits_and_verifs()
+        self._scoring_inits = inits
+        self._scoring_verifs = verif_dates
 
-    def align(self):
-        pass
+    def _return_inits_and_verifs(self):
+        (
+            n,
+            freq,
+        ) = self._get_all_lead_cftime_shift_args()  # n and freq could be attributes.
+        init_lead_matrix = self._construct_init_lead_matrix()
+        verifies_at_all_leads = init_lead_matrix.isin(self._all_verifs).all('lead')
+
+        # In real implementation, think about persistence which changes this as
+        # in current `climpred` code.
+        valid_inits = init_lead_matrix['init']
+        inits = valid_inits.where(verifies_at_all_leads, drop=True)
+        inits = {lead: inits for lead in self._leads}
+        verif_dates = {
+            lead: self._shift_cftime_index(inits[lead], 'init', int(n), freq)
+            for (lead, n) in zip(self._leads, n)
+        }
+        return inits, verif_dates
