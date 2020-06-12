@@ -7,10 +7,9 @@ from .time import TimeManager
 
 
 # Might want multiple inheritance here, since PM doesn't need to do alignment.
-class Scoring(LeadAlignment):
-    def __init__(self, initialized, observation, comparison, alignment, metric):
-        super().__init__(initialized, observation, alignment)
-        self._metric = metric
+class Scoring(TimeManager):
+    def __init__(self, initialized, observation, comparison, alignment):
+        super().__init__(initialized, observation)
 
         # Run comparison on the object. This uses the factory pattern from
         # Comparison to pull the appropriate comparison. We don't use inheritance
@@ -27,8 +26,8 @@ class Scoring(LeadAlignment):
 
 
 class HindcastScoring(Scoring):
-    def __init__(self, initialized, observation, comparison, alignment, metric):
-        super().__init__(initialized, observation, comparison, alignment, metric)
+    def __init__(self, initialized, observation, comparison, alignment):
+        super().__init__(initialized, observation, comparison, alignment)
 
         # Same use of factory pattern. Not sure there's a way to do this in the classes
         # themselves without a recursion nightmare.
@@ -68,7 +67,7 @@ class HindcastScoring(Scoring):
         return result
 
 
-class PerfectModelScoring(TimeManager):
+class PerfectModelScoring(Scoring):
     """We might just need to inherit from TimeManager here since
     PM doesn't need any of the alignment attributes and methods."""
 
