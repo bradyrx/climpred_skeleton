@@ -8,3 +8,9 @@ References:
 
 UML Tools:
 1. https://modeling-languages.com/uml-tools/#python
+
+To get UML graphs:
+
+```python
+pyreverse -o png -p out climpred_skeleton/
+```
