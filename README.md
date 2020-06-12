@@ -14,3 +14,7 @@ To get UML graphs:
 ```python
 pyreverse -o png -p out climpred_skeleton/
 ```
+
+Google Doc:
+
+https://docs.google.com/document/d/1Ki93B36bwvhi_92GyZ-FnlCb3uADevTlasG2Dl31KjU
