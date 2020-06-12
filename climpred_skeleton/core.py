@@ -23,6 +23,7 @@ class Verification:
         self._observation = observation.copy()
 
         self._leads = self._initialized['lead'].data
+        self._units = self._initialized['lead'].attrs['units']
         if 'member' in self._initialized.dims:
             self._nmember = self._initialized['member'].size
             self._members = self._initialized['member'].data
