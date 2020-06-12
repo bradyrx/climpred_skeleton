@@ -45,7 +45,7 @@ class TimeManager(Verification):
 
                 else:
                     raise ValueError(
-                        f'The incoming time index must be pd.Float64Index, '
+                        'The incoming time index must be pd.Float64Index, '
                         'pd.Int64Index, xr.CFTimeIndex or '
                         'pd.DatetimeIndex.'
                     )
@@ -68,7 +68,7 @@ class TimeManager(Verification):
 
     def _get_all_lead_cftime_shift_args(self):
         """Returns a tuple of all lead shifts and the frequency string."""
-        n_freq_tuples = [self._get_lead_cftime_shift_args(l) for l in self._leads]
+        n_freq_tuples = [self._get_lead_cftime_shift_args(lead) for lead in self._leads]
         n, freq = list(zip(*n_freq_tuples))
         return n, freq[0]
 
@@ -87,3 +87,15 @@ class TimeManager(Verification):
 
         n, freq = d[self._units]
         return n, freq
+
+    @staticmethod
+    def _shift_cftime_index(
+        xobj: Union[xr.DataArray, xr.Dataset], time_str: str, n: int, freq: str
+    ):
+        """Shifts a ``CFTimeIndex`` over a specified number of time steps ``n``
+        at a given temporal frequency ``freq``.
+
+        time_str : e.g. 'time' or 'init'
+        """
+        time_index = xobj[time_str].to_index()
+        return time_index.shift(n, freq)
