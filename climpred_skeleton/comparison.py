@@ -98,7 +98,8 @@ class MemberToControl(Comparison):
             control_member = self._members[0]
         observation = self._initialized.isel(member=control_member).squeeze()
         # drop the member being considered as the control.
-        initialized = self._drop_members(members_to_remove=control_member)
+        initialized = self._drop_members(members=control_member)
+        initialized, observation = xr.broadcast(initialized, observation)
         return initialized, observation
 
 
