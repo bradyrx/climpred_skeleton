@@ -1,0 +1,3 @@
+SameInitializations:
+  keywords: ['same_inits', 'same_init']
+  long_name: 'maintain the same initializations at all leads.'

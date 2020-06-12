@@ -1,6 +1,8 @@
 from typing import Union
 
+import pkg_resources
 import xarray as xr
+import yaml
 
 from .time import TimeManager
 
@@ -10,22 +12,29 @@ class LeadAlignment(TimeManager):
 
     This is the second step for Hindcast ensembles, and is not
     required by Perfect Model.
-
-    At initialization, it retrieves the appropriate comparison subclass and overwrites
-    the `initialized` and `observation` attribute with their dbroadcasted versions.
     """
 
     def __init__(
         self,
         initialized: Union[xr.Dataset, xr.DataArray],
         observation: Union[xr.Dataset, xr.DataArray],
-        comparison: str,
         alignment: str,
     ):
         super().__init__(initialized, observation)
         self._alignment = alignment
         self._all_verifs = self._observation['time']
         self._all_inits = self._initialized['init']
+
+    def get_alignment(self, method) -> 'LeadAlignment':
+        try:
+            return alignment_dict[method](self._initialized, self._observation, method)
+        except KeyError:
+            raise ValueError(
+                f'{method} not valid keyword from {list(alignment_dict.keys())}'
+            )
+
+    def _return_inits_and_verifs(self):
+        pass
 
     def _construct_init_lead_matrix(self):
         """Constructs the init-lead matrix to figure out which inits and verif dates
@@ -54,11 +63,8 @@ class LeadAlignment(TimeManager):
 class SameInitializations(LeadAlignment):
     """Class for `same_inits` keyword."""
 
-    def __init__(self, initialized, observation, comparison, alignment):
-        super().__init__(initialized, observation, comparison, alignment)
-        inits, verif_dates = self._return_inits_and_verifs()
-        self._scoring_inits = inits
-        self._scoring_verifs = verif_dates
+    def __init__(self, initialized, observation, alignment):
+        super().__init__(initialized, observation, alignment)
 
     def _return_inits_and_verifs(self):
         (
@@ -78,3 +84,15 @@ class SameInitializations(LeadAlignment):
             for (lead, n) in zip(self._leads, n)
         }
         return inits, verif_dates
+
+
+alignment_yaml_file = pkg_resources.resource_filename(
+    'climpred_skeleton', 'alignment.yaml'
+)
+with open(alignment_yaml_file) as f:
+    """Pull aliases from alignment YAML into dictionary to guide factory."""
+    metadata = yaml.safe_load(f)
+    alignment_dict = {}
+    for k, v in metadata.items():
+        for keyword in v['keywords']:
+            alignment_dict.update({keyword: eval(k)})
