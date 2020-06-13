@@ -16,17 +16,19 @@ class Verification:
         initialized: Union[xr.Dataset, xr.DataArray],
         observation: Union[xr.Dataset, xr.DataArray],
     ):
-        # Check that inputs are xarray objects, convert to dataset.
-        # Convert to `cftime`.
-        self._initialized = initialized
-        self._observation = observation
+        # E.g., check that inputs are xarray objects, convert to dataset.
+
+        # Make sure that we don't overwrite the original arrays.
+        self._initialized = initialized.copy()
+        self._observation = observation.copy()
+
+        self._leads = self._initialized['lead'].data
+        self._units = self._initialized['lead'].attrs['units']
         if 'member' in self._initialized.dims:
             self._nmember = self._initialized['member'].size
             self._members = self._initialized['member'].data
         else:
             self._nmember, self._members = None, None
-        self._all_verifs = self._observation['time'].data
-        self._all_inits = self._initialized['init'].data
 
     def _drop_members(self, members: list = None):
         if members is None:

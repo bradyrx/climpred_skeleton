@@ -4,10 +4,10 @@ import pkg_resources
 import xarray as xr
 import yaml
 
-from .core import Verification
+from .time import TimeManager
 
 
-class Comparison(Verification):
+class Comparison(TimeManager):
     """First step in pipeline. Broadcast your initialized and observations
     in a certain manner.
 
@@ -26,6 +26,9 @@ class Comparison(Verification):
         observation: Union[xr.Dataset, xr.DataArray],
     ):
         super().__init__(initialized, observation)
+
+    def broadcast(self):
+        pass
 
     def get_comparison(self, method) -> 'Comparison':
         try:
@@ -95,7 +98,8 @@ class MemberToControl(Comparison):
             control_member = self._members[0]
         observation = self._initialized.isel(member=control_member).squeeze()
         # drop the member being considered as the control.
-        initialized = self._drop_members(members_to_remove=control_member)
+        initialized = self._drop_members(members=control_member)
+        initialized, observation = xr.broadcast(initialized, observation)
         return initialized, observation
 
 
