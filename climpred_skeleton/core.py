@@ -35,8 +35,24 @@ class Verification:
         return self._initialized
 
     @property
+    def leads(self):
+        return self._leads
+
+    @property
+    def members(self):
+        return self._members
+
+    @property
+    def nmember(self):
+        return self._nmember
+
+    @property
     def observation(self):
         return self._observation
+
+    @property
+    def units(self):
+        return self._units
 
     def _drop_members(self, members: list = None):
         if members is None:

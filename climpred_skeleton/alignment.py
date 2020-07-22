@@ -29,10 +29,23 @@ class LeadAlignment(TimeManager):
         elif reference is None:
             reference = []
         self._reference = reference
+
         if 'persistence' in reference:
-            self._persistence = True
+            self._score_persistence = True
         else:
-            self._persistence = False
+            self._score_persistence = False
+
+    @property
+    def alignment(self):
+        return self._alignment
+
+    @property
+    def reference(self):
+        return self._reference
+
+    @property
+    def score_persistence(self):
+        return self._score_persistence
 
     def get_alignment(self) -> 'LeadAlignment':
         try:
@@ -88,7 +101,7 @@ class SameInitializations(LeadAlignment):
 
         # If a persistence forecast is desired, need a union between the
         # initializations and verifs so the same are used.
-        if self._persistence:
+        if self.score_persistence:
             union_with_verifs = self._all_inits.isin(self._all_verifs)
             init_lead_matrix = init_lead_matrix.where(union_with_verifs, drop=True)
 

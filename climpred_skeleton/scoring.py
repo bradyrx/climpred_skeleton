@@ -68,6 +68,15 @@ class HindcastScoring(Scoring):
         # Just an example metric here.
         return pearson_r(a, b, 'time')
 
+    def _persistence(self, lead):
+        # Use `.where()` instead of `.sel()` to account for resampled inits when
+        # bootstrapping.
+        a = self.observation.where(
+            self.all_verifs.isin(self.scoring_inits[lead]), drop=True
+        )
+        b = self.observation.sel(time=self.scoring_verifs[lead])
+        return a, b
+
     def _skill(self, lead):
         # Use `.where()` instead of `.sel()` to account for resampled inits when
         # bootstrapping.
@@ -76,15 +85,6 @@ class HindcastScoring(Scoring):
             .where(self.all_inits.isin(self.scoring_inits[lead]), drop=True)
             .drop_vars('lead')
             .rename({'init': 'time'})
-        )
-        b = self.observation.sel(time=self.scoring_verifs[lead])
-        return a, b
-
-    def _persistence(self, lead):
-        # Use `.where()` instead of `.sel()` to account for resampled inits when
-        # bootstrapping.
-        a = self.observation.where(
-            self.all_verifs.isin(self.scoring_inits[lead]), drop=True
         )
         b = self.observation.sel(time=self.scoring_verifs[lead])
         return a, b
