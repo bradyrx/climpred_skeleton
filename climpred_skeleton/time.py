@@ -14,9 +14,18 @@ class TimeManager(Verification):
         # Convert `init` and `time` indices to CFTimeIndex.
         self._convert_to_cftime_index()
         self._units = self._initialized['lead'].attrs['units']
+
         # These occur here to make sure they're in datetime.
         self._all_verifs = self._observation['time']
         self._all_inits = self._initialized['init']
+
+    @property
+    def all_verifs(self):
+        return self._all_verifs
+
+    @property
+    def all_inits(self):
+        return self._all_inits
 
     def _convert_to_cftime_index(self, calendar: str = 'DatetimeProlepticGregorian'):
         """Converts time indices for the prediction and observations to a

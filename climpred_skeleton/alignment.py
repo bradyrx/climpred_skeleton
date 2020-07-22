@@ -23,8 +23,7 @@ class LeadAlignment(TimeManager):
     ):
         super().__init__(initialized, observation)
         self._alignment = alignment
-        self._all_verifs = self._observation['time']
-        self._all_inits = self._initialized['init']
+
         if isinstance(reference, str):
             reference = [reference]
         elif reference is None:

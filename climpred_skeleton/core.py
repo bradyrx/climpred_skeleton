@@ -30,6 +30,14 @@ class Verification:
         else:
             self._nmember, self._members = None, None
 
+    @property
+    def initialized(self):
+        return self._initialized
+
+    @property
+    def observation(self):
+        return self._observation
+
     def _drop_members(self, members: list = None):
         if members is None:
             members = self._members[0]

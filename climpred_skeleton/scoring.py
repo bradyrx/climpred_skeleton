@@ -26,6 +26,14 @@ class Scoring(TimeManager):
 
 class HindcastScoring(Scoring):
     def __init__(self, initialized, observation, comparison, alignment, reference=None):
+        """
+        Reference is set here so that the alignment system can select
+        inits/verifs appropriately. It may differ based on the reference.
+        If `persistence` and the verif dates are shorter than the dates of
+        the initialized forecast, they get trimmed even if they verify in the
+        same window so that the initialized forecast and verifications use the
+        same inits.
+        """
         super().__init__(initialized, observation, comparison)
 
         # Same use of factory pattern. Not sure there's a way to do this in the classes
@@ -34,19 +42,22 @@ class HindcastScoring(Scoring):
             self._initialized, self._observation, alignment, reference
         ).get_alignment()
         inits, verif_dates = alignment_obj._return_inits_and_verifs()
+
+        # These are at most a union with all_inits and all_verifs, but are likely
+        # a subset.
         self._scoring_inits = inits
         self._scoring_verifs = verif_dates
 
+    @property
+    def scoring_inits(self):
+        return self._scoring_inits
+
+    @property
+    def scoring_verifs(self):
+        return self._scoring_verifs
+
     def _apply_metric_at_given_lead(self, lead, fct_type=None):
-        """[summary]
-
-        Args:
-            lead ([type]): [description]
-            fct_type ([type], optional): [description]. Defaults to None.
-
-        Returns:
-            [type]: [description]
-        """
+        """Returns score for a given forecast type at a given lead."""
         FORECAST_TYPE = {
             'skill': self._skill,
             'persistence': self._persistence,
@@ -54,33 +65,28 @@ class HindcastScoring(Scoring):
 
         a, b = FORECAST_TYPE[fct_type](lead)
         a['time'] = b['time']
-        # Just example metric here.
+        # Just an example metric here.
         return pearson_r(a, b, 'time')
 
     def _skill(self, lead):
-        fct = self._initialized
-        verif = self._observation
-        fct_inits = self._scoring_inits[lead]
-        all_inits = self._all_inits
         # Use `.where()` instead of `.sel()` to account for resampled inits when
         # bootstrapping.
         a = (
-            fct.sel(lead=lead)
-            .where(all_inits.isin(fct_inits), drop=True)
+            self.initialized.sel(lead=lead)
+            .where(self.all_inits.isin(self.scoring_inits[lead]), drop=True)
             .drop_vars('lead')
             .rename({'init': 'time'})
         )
-        b = verif.sel(time=self._scoring_verifs[lead])
+        b = self.observation.sel(time=self.scoring_verifs[lead])
         return a, b
 
     def _persistence(self, lead):
-        verif = self._observation
-        fct_inits = self._scoring_inits[lead]
-        fct_targets = self._scoring_verifs[lead]
         # Use `.where()` instead of `.sel()` to account for resampled inits when
         # bootstrapping.
-        a = verif.where(verif['time'].isin(fct_inits), drop=True)
-        b = verif.sel(time=fct_targets)
+        a = self.observation.where(
+            self.all_verifs.isin(self.scoring_inits[lead]), drop=True
+        )
+        b = self.observation.sel(time=self.scoring_verifs[lead])
         return a, b
 
     def score(self, fct_type=None):
