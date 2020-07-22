@@ -37,7 +37,27 @@ class HindcastScoring(Scoring):
         self._scoring_inits = inits
         self._scoring_verifs = verif_dates
 
-    def _apply_metric_at_given_lead(self, lead):
+    def _apply_metric_at_given_lead(self, lead, fct_type=None):
+        """[summary]
+
+        Args:
+            lead ([type]): [description]
+            fct_type ([type], optional): [description]. Defaults to None.
+
+        Returns:
+            [type]: [description]
+        """
+        FORECAST_TYPE = {
+            'skill': self._skill,
+            'persistence': self._persistence,
+        }
+
+        a, b = FORECAST_TYPE[fct_type](lead)
+        a['time'] = b['time']
+        # Just example metric here.
+        return pearson_r(a, b, 'time')
+
+    def _skill(self, lead):
         fct = self._initialized
         verif = self._observation
         fct_inits = self._scoring_inits[lead]
@@ -51,13 +71,23 @@ class HindcastScoring(Scoring):
             .rename({'init': 'time'})
         )
         b = verif.sel(time=self._scoring_verifs[lead])
-        a['time'] = b['time']
-        # Just example metric here.
-        return pearson_r(a, b, 'time')
+        return a, b
 
-    def score(self):
+    def _persistence(self, lead):
+        verif = self._observation
+        fct_inits = self._scoring_inits[lead]
+        fct_targets = self._scoring_verifs[lead]
+        # Use `.where()` instead of `.sel()` to account for resampled inits when
+        # bootstrapping.
+        a = verif.where(verif['time'].isin(fct_inits), drop=True)
+        b = verif.sel(time=fct_targets)
+        return a, b
+
+    def score(self, fct_type=None):
+        # NOTE: Alignment applied at lower level and accounts for reference, so score
+        # computation will automatically apply this.
         metric_over_leads = [
-            self._apply_metric_at_given_lead(lead) for lead in self._leads
+            self._apply_metric_at_given_lead(lead, fct_type) for lead in self._leads
         ]
         result = xr.concat(
             metric_over_leads, dim='lead', coords='minimal', compat='override'
