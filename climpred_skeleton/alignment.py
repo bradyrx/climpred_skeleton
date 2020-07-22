@@ -19,18 +19,31 @@ class LeadAlignment(TimeManager):
         initialized: Union[xr.Dataset, xr.DataArray],
         observation: Union[xr.Dataset, xr.DataArray],
         alignment: str,
+        reference: Union[None, str, list, tuple],
     ):
         super().__init__(initialized, observation)
         self._alignment = alignment
         self._all_verifs = self._observation['time']
         self._all_inits = self._initialized['init']
+        if isinstance(reference, str):
+            reference = [reference]
+        elif reference is None:
+            reference = []
+        self._reference = reference
+        if 'persistence' in reference:
+            self._persistence = True
+        else:
+            self._persistence = False
 
-    def get_alignment(self, method) -> 'LeadAlignment':
+    def get_alignment(self) -> 'LeadAlignment':
         try:
-            return alignment_dict[method](self._initialized, self._observation, method)
+            return alignment_dict[self._alignment](
+                self._initialized, self._observation, self._alignment, self._reference
+            )
         except KeyError:
             raise ValueError(
-                f'{method} not valid keyword from {list(alignment_dict.keys())}'
+                f'{self._alignment} not valid keyword from '
+                f'{list(alignment_dict.keys())}'
             )
 
     def _return_inits_and_verifs(self):
@@ -63,8 +76,9 @@ class LeadAlignment(TimeManager):
 class SameInitializations(LeadAlignment):
     """Class for `same_inits` keyword."""
 
-    def __init__(self, initialized, observation, alignment):
-        super().__init__(initialized, observation, alignment)
+    def __init__(self, initialized, observation, alignment, reference=None):
+        """Reference will alter how initializations are selected."""
+        super().__init__(initialized, observation, alignment, reference)
 
     def _return_inits_and_verifs(self):
         (
@@ -72,10 +86,14 @@ class SameInitializations(LeadAlignment):
             freq,
         ) = self._get_all_lead_cftime_shift_args()  # n and freq could be attributes.
         init_lead_matrix = self._construct_init_lead_matrix()
-        verifies_at_all_leads = init_lead_matrix.isin(self._all_verifs).all('lead')
 
-        # In real implementation, think about persistence which changes this as
-        # in current `climpred` code.
+        # If a persistence forecast is desired, need a union between the
+        # initializations and verifs so the same are used.
+        if self._persistence:
+            union_with_verifs = self._all_inits.isin(self._all_verifs)
+            init_lead_matrix = init_lead_matrix.where(union_with_verifs, drop=True)
+
+        verifies_at_all_leads = init_lead_matrix.isin(self._all_verifs).all('lead')
         valid_inits = init_lead_matrix['init']
         inits = valid_inits.where(verifies_at_all_leads, drop=True)
         inits = {lead: inits for lead in self._leads}

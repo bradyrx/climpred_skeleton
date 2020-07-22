@@ -25,14 +25,14 @@ class Scoring(TimeManager):
 
 
 class HindcastScoring(Scoring):
-    def __init__(self, initialized, observation, comparison, alignment):
+    def __init__(self, initialized, observation, comparison, alignment, reference=None):
         super().__init__(initialized, observation, comparison)
 
         # Same use of factory pattern. Not sure there's a way to do this in the classes
         # themselves without a recursion nightmare.
         alignment_obj = LeadAlignment(
-            self._initialized, self._observation, alignment
-        ).get_alignment(alignment)
+            self._initialized, self._observation, alignment, reference
+        ).get_alignment()
         inits, verif_dates = alignment_obj._return_inits_and_verifs()
         self._scoring_inits = inits
         self._scoring_verifs = verif_dates
