@@ -7,7 +7,7 @@ from .time import TimeManager
 
 
 class Scoring(TimeManager):
-    def __init__(self, initialized, observation, comparison):
+    def __init__(self, initialized, observation, comparison, reference):
         super().__init__(initialized, observation)
 
         # Run comparison on the object. This uses the factory pattern from
@@ -21,6 +21,17 @@ class Scoring(TimeManager):
         # Should be using a setter, which I tried in `core.py` but it says
         # I can't set the attribute here if I do that.
         self._initialized, self._observation = comparison_obj.broadcast()
+
+        # Adds attribute for references used.
+        if isinstance(reference, str):
+            reference = [reference]
+        elif reference is None:
+            reference = []
+        self._reference = reference
+
+    @property
+    def reference(self):
+        return self._reference
 
     def score(self):
         pass
@@ -36,13 +47,7 @@ class HindcastScoring(Scoring):
         same window so that the initialized forecast and verifications use the
         same inits.
         """
-        super().__init__(initialized, observation, comparison)
-
-        if isinstance(reference, str):
-            reference = [reference]
-        elif reference is None:
-            reference = []
-        self._reference = reference
+        super().__init__(initialized, observation, comparison, reference)
 
         # Same use of factory pattern. Not sure there's a way to do this in the classes
         # themselves without a recursion nightmare.
@@ -55,10 +60,6 @@ class HindcastScoring(Scoring):
         # a subset.
         self._scoring_inits = inits
         self._scoring_verifs = verif_dates
-
-    @property
-    def reference(self):
-        return self._reference
 
     @property
     def scoring_inits(self):
@@ -132,8 +133,24 @@ class PerfectModelScoring(Scoring):
     """We might just need to inherit from TimeManager here since
     PM doesn't need any of the alignment attributes and methods."""
 
-    def __init__(self, initialized, observation, comparison):
-        super().__init__(initialized, observation, comparison)
+    def __init__(self, initialized, observation, comparison, reference=None):
+        # Set this beforehand, since the `Scoring` class replaces
+        # `observation` with the broadcasted version. Might set up
+        # higher in the pipeline, but this is the first time it
+        # was needed directly.
+        converted_time = self._return_converted_time_index(
+            observation['time'].to_index()
+        )
+        control = observation.assign_coords(time=converted_time)
+        self._control = control
+        super().__init__(initialized, observation, comparison, reference)
+
+    @property
+    def control(self):
+        return self._control
 
     def score(self):
         return pearson_r(self.initialized, self.observation, dim=['init', 'member'])
+
+    def _persistence(self):
+        pass
