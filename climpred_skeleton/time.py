@@ -13,6 +13,7 @@ class TimeManager(Verification):
         super().__init__(initialized, observation)
         # Convert `init` and `time` indices to CFTimeIndex.
         self._convert_to_cftime_index()
+        self._units = self._initialized['lead'].attrs['units']
 
         # These occur here to make sure they're in datetime.
         self._all_verifs = self._observation['time']

@@ -32,7 +32,7 @@ class Comparison(TimeManager):
 
     def get_comparison(self, method) -> 'Comparison':
         try:
-            return comparison_dict[method](self._initialized, self._observation)
+            return comparison_dict[method](self.initialized, self.observation)
         except KeyError:
             raise ValueError(
                 f'{method} not valid keyword from {list(comparison_dict.keys())}'
@@ -58,11 +58,11 @@ class EnsembleToObservation(Comparison):
         self._probabilistic_comparison = False
 
     def broadcast(self) -> Union[xr.Dataset, xr.Dataset]:
-        if 'member' in self._initialized.dims:
-            initialized = self._initialized.mean('member')
+        if 'member' in self.initialized.dims:
+            initialized = self.initialized.mean('member')
         else:
-            initialized = self._initialized
-        return initialized, self._observation
+            initialized = self.initialized
+        return initialized, self.observation
 
 
 class MemberToObservation(Comparison):
@@ -77,9 +77,9 @@ class MemberToObservation(Comparison):
         self._probabilistic_comparison = True
 
     def broadcast(self) -> Union[xr.Dataset, xr.Dataset]:
-        observation = self._observation.expand_dims({'member': self._nmember})
-        observation['member'] = self._members
-        return self._initialized, observation
+        observation = self.observation.expand_dims({'member': self._nmember})
+        observation['member'] = self.members
+        return self.initialized, observation
 
 
 class MemberToControl(Comparison):
@@ -95,8 +95,8 @@ class MemberToControl(Comparison):
 
     def broadcast(self, control_member: list = None) -> Union[xr.Dataset, xr.Dataset]:
         if control_member is None:
-            control_member = self._members[0]
-        observation = self._initialized.isel(member=control_member).squeeze()
+            control_member = self.members[0]
+        observation = self.initialized.isel(member=control_member).squeeze()
         # drop the member being considered as the control.
         initialized = self._drop_members(members=control_member)
         initialized, observation = xr.broadcast(initialized, observation)

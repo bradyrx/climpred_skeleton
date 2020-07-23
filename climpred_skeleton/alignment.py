@@ -49,12 +49,12 @@ class LeadAlignment(TimeManager):
 
     def get_alignment(self) -> 'LeadAlignment':
         try:
-            return alignment_dict[self._alignment](
-                self._initialized, self._observation, self._alignment, self._reference
+            return alignment_dict[self.alignment](
+                self.initialized, self.observation, self.alignment, self.reference
             )
         except KeyError:
             raise ValueError(
-                f'{self._alignment} not valid keyword from '
+                f'{self.alignment} not valid keyword from '
                 f'{list(alignment_dict.keys())}'
             )
 
@@ -70,7 +70,7 @@ class LeadAlignment(TimeManager):
                 xr.DataArray(
                     self._shift_hindcast_inits(int(n), freq),
                     dims=['init'],
-                    coords=[self._all_inits],
+                    coords=[self.all_inits],
                 )
                 for n in n
             ],
@@ -81,7 +81,7 @@ class LeadAlignment(TimeManager):
     def _shift_hindcast_inits(self, n: int, freq: str):
         """Helper function to shift the initialized inits by a specific n and freq. Used
         in constructing the init/lead matrix."""
-        time_index = self._all_inits.to_index()
+        time_index = self.all_inits.to_index()
         return time_index.shift(n, freq)
 
 
@@ -102,16 +102,16 @@ class SameInitializations(LeadAlignment):
         # If a persistence forecast is desired, need a union between the
         # initializations and verifs so the same are used.
         if self.score_persistence:
-            union_with_verifs = self._all_inits.isin(self._all_verifs)
+            union_with_verifs = self.all_inits.isin(self.all_verifs)
             init_lead_matrix = init_lead_matrix.where(union_with_verifs, drop=True)
 
-        verifies_at_all_leads = init_lead_matrix.isin(self._all_verifs).all('lead')
+        verifies_at_all_leads = init_lead_matrix.isin(self.all_verifs).all('lead')
         valid_inits = init_lead_matrix['init']
         inits = valid_inits.where(verifies_at_all_leads, drop=True)
-        inits = {lead: inits for lead in self._leads}
+        inits = {lead: inits for lead in self.leads}
         verif_dates = {
             lead: self._shift_cftime_index(inits[lead], 'init', int(n), freq)
-            for (lead, n) in zip(self._leads, n)
+            for (lead, n) in zip(self.leads, n)
         }
         return inits, verif_dates
 

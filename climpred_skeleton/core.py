@@ -22,17 +22,21 @@ class Verification:
         self._initialized = initialized.copy()
         self._observation = observation.copy()
 
-        self._leads = self._initialized['lead'].data
-        self._units = self._initialized['lead'].attrs['units']
-        if 'member' in self._initialized.dims:
-            self._nmember = self._initialized['member'].size
-            self._members = self._initialized['member'].data
+        self._leads = self.initialized['lead'].data
+        self._units = self.initialized['lead'].attrs['units']
+        if 'member' in self.initialized.dims:
+            self._nmember = self.initialized['member'].size
+            self._members = self.initialized['member'].data
         else:
             self._nmember, self._members = None, None
 
     @property
     def initialized(self):
         return self._initialized
+
+    @initialized.setter
+    def initialized(self, value):
+        self._initialized = value
 
     @property
     def leads(self):
@@ -50,11 +54,15 @@ class Verification:
     def observation(self):
         return self._observation
 
+    @observation.setter
+    def observation(self, value):
+        self._observation = value
+
     @property
     def units(self):
         return self._units
 
     def _drop_members(self, members: list = None):
         if members is None:
-            members = self._members[0]
-        return self._initialized.drop_sel(member=members)
+            members = self.members[0]
+        return self.initialized.drop_sel(member=members)

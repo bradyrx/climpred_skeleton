@@ -14,10 +14,12 @@ class Scoring(TimeManager):
         # Comparison to pull the appropriate comparison. We don't use inheritance
         # here so that we don't maintain the factory method and `broadcast` and
         # just handle the comparison upon instantiation.
-        comparison_obj = Comparison(
-            self._initialized, self._observation
-        ).get_comparison(comparison)
+        comparison_obj = Comparison(self.initialized, self.observation).get_comparison(
+            comparison
+        )
         # Overwrites initialized and observation. Maybe a bad practice.
+        # Should be using a setter, which I tried in `core.py` but it says
+        # I can't set the attribute here if I do that.
         self._initialized, self._observation = comparison_obj.broadcast()
 
     def score(self):
@@ -36,10 +38,16 @@ class HindcastScoring(Scoring):
         """
         super().__init__(initialized, observation, comparison)
 
+        if isinstance(reference, str):
+            reference = [reference]
+        elif reference is None:
+            reference = []
+        self._reference = reference
+
         # Same use of factory pattern. Not sure there's a way to do this in the classes
         # themselves without a recursion nightmare.
         alignment_obj = LeadAlignment(
-            self._initialized, self._observation, alignment, reference
+            self.initialized, self.observation, alignment, reference
         ).get_alignment()
         inits, verif_dates = alignment_obj._return_inits_and_verifs()
 
@@ -47,6 +55,10 @@ class HindcastScoring(Scoring):
         # a subset.
         self._scoring_inits = inits
         self._scoring_verifs = verif_dates
+
+    @property
+    def reference(self):
+        return self._reference
 
     @property
     def scoring_inits(self):
@@ -59,8 +71,8 @@ class HindcastScoring(Scoring):
     def _apply_metric_at_given_lead(self, lead, fct_type=None):
         """Returns score for a given forecast type at a given lead."""
         FORECAST_TYPE = {
-            'skill': self._skill,
-            'persistence': self._persistence,
+            'init': self._initialized_forecast,
+            'persistence': self._persistence_forecast,
         }
 
         a, b = FORECAST_TYPE[fct_type](lead)
@@ -68,16 +80,7 @@ class HindcastScoring(Scoring):
         # Just an example metric here.
         return pearson_r(a, b, 'time')
 
-    def _persistence(self, lead):
-        # Use `.where()` instead of `.sel()` to account for resampled inits when
-        # bootstrapping.
-        a = self.observation.where(
-            self.all_verifs.isin(self.scoring_inits[lead]), drop=True
-        )
-        b = self.observation.sel(time=self.scoring_verifs[lead])
-        return a, b
-
-    def _skill(self, lead):
+    def _initialized_forecast(self, lead):
         # Use `.where()` instead of `.sel()` to account for resampled inits when
         # bootstrapping.
         a = (
@@ -89,16 +92,39 @@ class HindcastScoring(Scoring):
         b = self.observation.sel(time=self.scoring_verifs[lead])
         return a, b
 
-    def score(self, fct_type=None):
+    def _persistence_forecast(self, lead):
+        # Use `.where()` instead of `.sel()` to account for resampled inits when
+        # bootstrapping.
+        a = self.observation.where(
+            self.all_verifs.isin(self.scoring_inits[lead]), drop=True
+        )
+        b = self.observation.sel(time=self.scoring_verifs[lead])
+        return a, b
+
+    def score(self):
         # NOTE: Alignment applied at lower level and accounts for reference, so score
         # computation will automatically apply this.
-        metric_over_leads = [
-            self._apply_metric_at_given_lead(lead, fct_type) for lead in self._leads
-        ]
-        result = xr.concat(
-            metric_over_leads, dim='lead', coords='minimal', compat='override'
-        )
-        result['lead'] = self._leads
+        if self.reference is None:
+            fct_list = ['init']
+        else:
+            fct_list = ['init'] + self.reference
+
+        result = xr.Dataset()
+        for fct_type in fct_list:
+            metric_over_leads = [
+                self._apply_metric_at_given_lead(lead, fct_type) for lead in self.leads
+            ]
+            current_forecast = xr.concat(
+                metric_over_leads, dim='lead', coords='minimal', compat='override'
+            )
+            result = xr.concat(
+                [result, current_forecast],
+                dim='fct_type',
+                coords='minimal',
+                compat='override',
+            )
+        result['lead'] = self.leads
+        result = result.assign_coords(fct_type=fct_list)
         return result
 
 
@@ -110,4 +136,4 @@ class PerfectModelScoring(Scoring):
         super().__init__(initialized, observation, comparison)
 
     def score(self):
-        return pearson_r(self._initialized, self._observation, dim=['init', 'member'])
+        return pearson_r(self.initialized, self.observation, dim=['init', 'member'])
